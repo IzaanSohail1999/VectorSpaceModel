@@ -2,30 +2,26 @@ import io
 import os
 import json
 import string
-import nltk
 from nltk.stem import WordNetLemmatizer
-from nltk.stem import PorterStemmer
 import math
 
 split_string = ""
+vocab_list = []
 Dict1 = {}
 Dict2 = {}
 Dict3 = {}
+Dict4 = {}
 freqcounter = 1
 
-
-def formindex(filenum, counter, term):
-    
-    global freqcounter
-    if term in Dict1:
-        Dict1[term] += 1
-    else: 
-        Dict1[term] = 1
-    
+def formindex(filenum, term):
     if filenum in Dict2:
         if term in Dict2[filenum]:
             Dict2[filenum][term]  += 1
         else:
+            if term in Dict1:
+                Dict1[term] += 1
+            else:
+                Dict1[term] = 1
             Dict2[filenum][term]  = 1
     else:
         Dict2[filenum] = {}
@@ -39,7 +35,6 @@ def clean(split_string):
 
 def fileread(txtDir):
     lemmatizer = WordNetLemmatizer()
-    porter = PorterStemmer()
     stopword = []
     stopfile = "Stopword-List.txt"
     stopFile1 = open(stopfile, "r+", encoding="utf-8")
@@ -50,8 +45,8 @@ def fileread(txtDir):
             word = word.replace(' ', '')
             stopword.append(word)
     
-    for txt in os.listdir(txtDir):
-        # if txt == '1.txt':
+
+        for txt in os.listdir(txtDir):
             filenum = txt.split('.')[0] 
             filename = txtDir + txt
             textFile = open(filename, "r+", encoding="utf-8")
@@ -67,8 +62,6 @@ def fileread(txtDir):
                             split_string[i] = split_string[i].replace(' ','')
                             split_string[i] = lemmatizer.lemmatize(
                                 split_string[i], pos="v")
-                            split_string[i] = porter.stem(split_string[i])
-                            # print(split_string[i])
                             check = False
                             for x in stopword:
                                 if split_string[i] == x:
@@ -78,27 +71,44 @@ def fileread(txtDir):
                                     continue
 
                             if check == False:
-                                formindex(filenum, counter, split_string[i])
-                                counter = counter + 1
-                            else:
-                                counter = counter + 1
+                                formindex(filenum, split_string[i])
 
 def FormIDF():
     for key in Dict1:
-        Dict3[key] = math.log(50/Dict1[key])
+        Dict3[key] = math.log10(50/Dict1[key])
     
 def FormTFIDF():
-    print("You have to evalute TF*IDF now")
+        for key1 in Dict2:
+            for term in Dict2[key1].keys():
+                Dict2[key1][term] *= Dict3[term]
+
+def EvaluateWeight():
+    addlist = []
+    for key in Dict2:
+        for term in Dict2[key]:
+            Dict4[key][term] = Dict2[key][term] ** 2
+
+    for key in Dict4:
+        for term in Dict4[key]:
+            sum = sum + Dict4[key][term]
+        sum = sum ** 0.5
+        addlist.append(sum)
+        sum = 0
+    
+
 
 def main():
-    global freqcounter
     Dir = "./ShortStories\\"
     fileread(Dir)
-    # with open ("Dictionary.json" , "w") as f:                                                               
-    #     f.write(json.dumps(Dict, sort_keys=False, indent=4))   #Writing the index to JSON File.
-    # print(freqcounter)
-    # print(Dict2)
+    print(Dict1)
     FormIDF()
-    # print(Dict3)
+    vocab = list(Dict3.keys())
     FormTFIDF()
+    with open ("Dictionary.json" , "w") as f:                                                               
+        f.write(json.dumps(Dict2, sort_keys=False, indent=4))
+    with open("Vocabulary.json", "w") as f:
+        f.write(json.dumps(vocab, sort_keys=False, indent=4))
+    with open("IDF_Dict.json", "w") as f:
+        f.write(json.dumps(Dict3, sort_keys=False, indent=4))
+    EvaluateWeight()
 main()
