@@ -26,7 +26,10 @@ def formindex(filenum, term):
     else:
         Dict2[filenum] = {}
         Dict2[filenum][term] = 1
-        # Dict1[term] += 1 #changes made here
+        if term in Dict1:
+            Dict1[term] += 1
+        else:
+            Dict1[term] = 1
         
 def clean(split_string):
     for x in range(len(split_string)):
@@ -91,41 +94,20 @@ def EvaluateWeight():
         for term in Dict4[key]:
             Dict4[key][term] = Dict4[key][term] ** 2
     
-    # print(Dict4)
-    
     for key in Dict4:
         for term in Dict4[key]:
             sum = sum + Dict4[key][term]
-        # print("Document number and sum before square root: " + str(key) + "--> " + str(sum))
         sum = sum ** 0.5
-        # print("Document number and sum after square root: " + str(key) + "--> " + str(sum))
-        temp[key] = sum
-        dict_copy = temp.copy()
-        addlist.append(dict_copy)
-        sum = 0
-    
-    # print(addlist)
-    # print(addlist[49].values())
-
-    for key in Dict2:
-        print(str(addlist[key]))
         for term in Dict2[key]:
-            temp = Dict2[key][term]
-            # print(temp)
-            # print(addlist[key])
-            # for x in range(addlist):
-            #     if key == addlist[x]:
-            #         temp = temp / 
-
-
-
+            Dict2[key][term] /= sum
+        sum = 0
+        
 def main():
     Dir = "./ShortStories\\"
     fileread(Dir)
     FormIDF()
     vocab = list(Dict3.keys())
     FormTFIDF()
-    # print(Dict2)
     EvaluateWeight()
     with open ("Dictionary.json" , "w") as f:                                                               
         f.write(json.dumps(Dict2, sort_keys=False, indent=4))
