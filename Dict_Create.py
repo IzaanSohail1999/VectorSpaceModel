@@ -26,6 +26,7 @@ def formindex(filenum, term):
     else:
         Dict2[filenum] = {}
         Dict2[filenum][term] = 1
+        # Dict1[term] += 1 #changes made here
         
 def clean(split_string):
     for x in range(len(split_string)):
@@ -45,70 +46,92 @@ def fileread(txtDir):
             word = word.replace(' ', '')
             stopword.append(word)
     
+    for txt in os.listdir(txtDir):
+        filenum = txt.split('.')[0] 
+        filename = txtDir + txt
+        textFile = open(filename, "r+", encoding="utf-8")
+        for my_line in textFile:
+            if len(my_line) > 5:
+                split_string = my_line.split(" ")
+                for i in range(len(split_string)):
+                    if len(split_string[i]) >= 1:
+                        split_string[i] = split_string[i].lower()
+                        split_string[i] = split_string[i].replace('\n','')
+                        split_string[i] = clean(split_string[i])
+                        split_string[i] = split_string[i].replace(' ','')
+                        split_string[i] = lemmatizer.lemmatize(split_string[i], pos="v")
+                        check = False
+                        for x in stopword:
+                            if split_string[i] == x:
+                                check = True
+                                break
+                            else:
+                                continue
 
-        for txt in os.listdir(txtDir):
-            filenum = txt.split('.')[0] 
-            filename = txtDir + txt
-            textFile = open(filename, "r+", encoding="utf-8")
-            counter = 1
-            for my_line in textFile:
-                if len(my_line) > 5:
-                    split_string = my_line.split(" ")
-                    for i in range(len(split_string)):
-                        if len(split_string[i]) >= 1:
-                            split_string[i] = split_string[i].lower()
-                            split_string[i] = split_string[i].replace('\n','')
-                            split_string[i] = clean(split_string[i])
-                            split_string[i] = split_string[i].replace(' ','')
-                            split_string[i] = lemmatizer.lemmatize(
-                                split_string[i], pos="v")
-                            check = False
-                            for x in stopword:
-                                if split_string[i] == x:
-                                    check = True
-                                    break
-                                else:
-                                    continue
-
-                            if check == False:
-                                formindex(filenum, split_string[i])
+                        if check == False:
+                            formindex(filenum, split_string[i])
 
 def FormIDF():
     for key in Dict1:
         Dict3[key] = math.log10(50/Dict1[key])
     
 def FormTFIDF():
+    for key in Dict3:
         for key1 in Dict2:
             for term in Dict2[key1].keys():
-                Dict2[key1][term] *= Dict3[term]
+                if key == term:
+                    Dict2[key1][term] *= Dict3[term]
 
 def EvaluateWeight():
+    sum = 0
+    temp = {}
     addlist = []
-    for key in Dict2:
-        for term in Dict2[key]:
-            Dict4[key][term] = Dict2[key][term] ** 2
-
+    Dict4 = Dict2.copy()
+    for key in Dict4:
+        for term in Dict4[key]:
+            Dict4[key][term] = Dict4[key][term] ** 2
+    
+    # print(Dict4)
+    
     for key in Dict4:
         for term in Dict4[key]:
             sum = sum + Dict4[key][term]
+        # print("Document number and sum before square root: " + str(key) + "--> " + str(sum))
         sum = sum ** 0.5
-        addlist.append(sum)
+        # print("Document number and sum after square root: " + str(key) + "--> " + str(sum))
+        temp[key] = sum
+        dict_copy = temp.copy()
+        addlist.append(dict_copy)
         sum = 0
     
+    # print(addlist)
+    # print(addlist[49].values())
+
+    for key in Dict2:
+        print(str(addlist[key]))
+        for term in Dict2[key]:
+            temp = Dict2[key][term]
+            # print(temp)
+            # print(addlist[key])
+            # for x in range(addlist):
+            #     if key == addlist[x]:
+            #         temp = temp / 
+
 
 
 def main():
     Dir = "./ShortStories\\"
     fileread(Dir)
-    print(Dict1)
     FormIDF()
     vocab = list(Dict3.keys())
     FormTFIDF()
+    # print(Dict2)
+    EvaluateWeight()
     with open ("Dictionary.json" , "w") as f:                                                               
         f.write(json.dumps(Dict2, sort_keys=False, indent=4))
     with open("Vocabulary.json", "w") as f:
         f.write(json.dumps(vocab, sort_keys=False, indent=4))
     with open("IDF_Dict.json", "w") as f:
         f.write(json.dumps(Dict3, sort_keys=False, indent=4))
-    EvaluateWeight()
+    
 main()
